@@ -13,7 +13,7 @@ const ethers = require("ethers");
 
 // Adjust path to your .env file.
 const pathToDotEnv = path.join(__dirname, "..", "..", ".env");
-// console.log(pathToDotEnv);
+console.log(pathToDotEnv);
 require("dotenv").config({ path: pathToDotEnv });
 
 const { getUserAnswer, extractQuestion } =
@@ -24,7 +24,7 @@ const { getUserAnswer, extractQuestion } =
 
 const providerKey = process.env.ALCHEMY_KEY;
 const sepoliaUrl = `${process.env.ALCHEMY_SEPOLIA_API_URL}${providerKey}`;
-// console.log(sepoliaUrl);
+console.log(sepoliaUrl);
 const sepoliaProvider = new ethers.JsonRpcProvider(sepoliaUrl);
 
 const signer = new ethers.Wallet(
@@ -43,13 +43,18 @@ async function main() {
 
     // A. Ask question and get a transaction receipt.
     // Hint: method `askQuestion()`
-
+    let tx = await quizContract.askQuestion();
+    let receipt = await tx.wait();
     // Your code here.
+
 
     // From the transaction receipt we can extract useful information, such as
     // as the question's text and id that were stored in the logs
     // (we will understand logs in detail later in the course).
+    console.log(receipt)
     const { text, id } = extractQuestion(quizContract, receipt);
+    console.log(`The question is: ${text}`);
+    console.log(`The question id is: ${id}`);
 
     // Now YOU answer the question!
     // Capture user input from the terminal.
@@ -57,12 +62,13 @@ async function main() {
 
     // B. Send the answer to the smart contract.
     // Hint: method `answerQuestion`.
-
+    await quizContract.answerQuestion(id, userAnswer);
     // Your code here.
 
     // C. Optional. Verify that the answer is correctly stored.
     // Hint: method `getAnswer(questionId)`
-
+    const storedAnswer = await quizContract.getAnswer(id);
+    console.log(`The answer stored in the contract is: ${storedAnswer}`);
     // Your code here.
 }
 

@@ -19,8 +19,8 @@ const extractQuestion = (quizContract, receipt) => {
         return parsedLog;
     });
 
-    // console.log('LOGS');
-    // console.log(logs);
+    console.log('LOGS');
+    console.log(logs);
 
     // Find the QuestionAsked event
     const questionEvent = logs.find((log) => log.name === "QuestionAsked");
