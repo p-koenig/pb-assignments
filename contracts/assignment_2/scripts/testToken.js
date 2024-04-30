@@ -24,7 +24,7 @@ async function main() {
     ////////////
 
     // Contract address.
-    const contractAddr = "YOUR_CONTRACT_ADDRESS";
+    const contractAddr = "0x54d8AE999c0302e9616A41454a9F81dADb398A8F";
 
     // Locate ABI as created by Hardhat after compilation/deployment.
     // (adjust names and path accordingly).
@@ -33,7 +33,7 @@ async function main() {
         "..",
         "artifacts",
         "contracts",
-        "Token.sol",
+        "Token_template.sol",
         "CensorableToken.json"
     );
     // console.log(pathToABI);

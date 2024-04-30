@@ -50,4 +50,5 @@ now_abi.json
 send_now_coins*
 send_now_tokens*
 deploy_my_quiz.js
-Token.sol
+*package.json*
+*package-lock.json*
