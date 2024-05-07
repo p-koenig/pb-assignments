@@ -7,7 +7,7 @@ async function main() {
     console.log("The address of the owner is: ", ownerC.address);
 
     const token = await ethers.getContractFactory("NFTminter");
-    const cont = await token.deploy("Token","TKN", ownerC.address)
+    const cont = await token.deploy("Token","ETH", ownerC.address)
     console.log("Contract deployed to:", cont.target);
 
     await cont.waitForDeployment();

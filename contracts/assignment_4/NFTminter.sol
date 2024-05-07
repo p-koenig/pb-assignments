@@ -1,71 +1,68 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
-
-// Easy creation of ERC20 tokens.
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+pragma solidity ^0.8.17;
 
 // Not stricly necessary for this case, but let us use the modifier onlyOwner
 // https://docs.openzeppelin.com/contracts/5.x/api/access#Ownable
-import "@openzeppelin/contracts/access/Ownable.sol";
-
-// This allows for granular control on who can execute the methods (e.g.,
-// the validator); however it might fail with our validator contract!
-// https://docs.openzeppelin.com/contracts/5.x/api/access#AccessControl
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-
-// import base64 from openzeppelin
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+//import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/utils/Base64.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+
 
 import "./INFTminter.sol";
 
 import "./BaseAssignment.sol";
 
 // implement INFTminter interface
-contract NFTminter is BaseAssignment, INFTminter, ERC721URIStorage, Ownable {
+contract NFTminter is BaseAssignment, INFTminter, ERC721URIStorage { // Ownable
 
-    event Response(bool success, bytes data);
-
-
-    uint256 private nextTokenId = 1;
-    uint256 public totalSupply = 0;
-    uint256 private price = 0.0001 ether;
-    bool  private isSaleActive = true;
+//    event Response(bool success, bytes data);
 
     using Strings for uint256;
     using Strings for address;
 
+    uint256 private nextTokenId = 0;
+    uint256 totalSupply = 0;
+    uint256 price = 0.0001 ether;
+    bool private isSaleActive = true;
+
+
+
     constructor(string memory _name, string memory _symbol, address _initialOwner)
-        BaseAssignment(0x43E66d5710F52A2D0BFADc5752E96f16e62F6a11)
         ERC721(_name, _symbol)
-        Ownable(_initialOwner)
+        BaseAssignment(0x43E66d5710F52A2D0BFADc5752E96f16e62F6a11)
+
+//        Ownable(_initialOwner)
     {
     }
 
     // implement mint function
-    function mint(address _address) public payable returns (uint256){
+    function mint(address _address) external payable returns (uint256){
         // Has to pay the price for minting
+        require(isSaleActive, "Sale is not active");
         require(
             msg.value >= price,
             "NFTminter: mint: Insufficient funds"
         );
 
+        uint256 tokenId = nextTokenId++;
+
+
         // Create a new NFT, assign it to the address _address and return the tokenId
-        nextTokenId = nextTokenId++;
-        totalSupply = totalSupply++;
+        totalSupply++;
 
 
-        string memory tokenURI = getTokenURI(nextTokenId, _address);
+        string memory tokenURI = getTokenURI(tokenId, _address);
 
         // The mint function creates a new NFT and assigns it to the requester address
-        _mint(_address, nextTokenId);
+        _mint(_address, tokenId);
 
-        _setTokenURI(nextTokenId, tokenURI);
+        _setTokenURI(tokenId, tokenURI);
 
         price = price * 2;
 
-        return nextTokenId;
+        return tokenId;
     }
 
     function getTokenURI(uint256 tokenId, address newOwner)
@@ -79,13 +76,13 @@ contract NFTminter is BaseAssignment, INFTminter, ERC721URIStorage, Ownable {
             tokenId.toString(),
             '"',
             '"hash": "',
-            'QmU4BVusPtcHG55kF3imVMSBCzy5VR6QMVYbhc7kfBmjSv',
+            this.getIPFSHash(),
             '",',
             '"by": "',
-            owner().toHexString(),
+            getOwner(),
             '",',
             '"new_owner": "',
-            newOwner.toHexString(),
+            newOwner,
             '"',
             "}"
         );
@@ -99,14 +96,14 @@ contract NFTminter is BaseAssignment, INFTminter, ERC721URIStorage, Ownable {
             );
     }
 
-    function getIPFSHash() override public view returns (string memory) {
+    function getIPFSHash() public view returns (string memory) {
         return "QmU4BVusPtcHG55kF3imVMSBCzy5VR6QMVYbhc7kfBmjSv";
     }
 
-    function burn(uint256 tokenId) public payable {
+    function burn(uint256 tokenId) external payable {
         // require a burn fee of min 0.001 ETH
         require(
-            msg.value >= 0.001 ether, "NFTminter: burn: Insufficient funds"
+            msg.value >= 0.0001 ether, "NFTminter: burn: Insufficient funds"
         );
         // Require the owner of the NFT to be the msg.sender
         require(
@@ -114,14 +111,14 @@ contract NFTminter is BaseAssignment, INFTminter, ERC721URIStorage, Ownable {
             "NFTminter: burn: Only the owner can burn the NFT"
         );
         _burn(tokenId);
-        totalSupply = totalSupply--;
+        totalSupply--;
         // reduce the price by 0.001 ETH
-        price = price - 0.001 ether;
+        price = 0.0001 ether;
     }
 
     function pauseSale() public {
         require(
-            msg.sender == owner() || isValidator(msg.sender),
+            msg.sender == 0x80400f9307e649Ba1dF9823074C5F492676B8430 || isValidator(msg.sender),
             "ERC721Pausable: caller is not the owner or validator"
         );
         isSaleActive = false;
@@ -130,7 +127,7 @@ contract NFTminter is BaseAssignment, INFTminter, ERC721URIStorage, Ownable {
 
     function activateSale() public {
         require(
-            msg.sender == owner() || isValidator(msg.sender),
+            msg.sender == 0x80400f9307e649Ba1dF9823074C5F492676B8430 || isValidator(msg.sender),
             "ERC721Pausable: caller is not the owner or validator"
         );
 
@@ -143,19 +140,12 @@ contract NFTminter is BaseAssignment, INFTminter, ERC721URIStorage, Ownable {
 
     function withdraw(uint256 amount) public {
         require(
-            msg.sender == owner() || isValidator(msg.sender),
+            msg.sender == 0x80400f9307e649Ba1dF9823074C5F492676B8430 || isValidator(msg.sender),
             "ERC721Pausable: caller is not the owner or validator"
         );
-        // Check if the contract has enough balance
-//        require(
-//            address(this).balance >= amount,
-//            "ERC721Pausable: Insufficient balance"
-//        );
-//        // Send the amount to the msg.sender
-////        payable(msg.sender).transfer(amount);
-////        emit Withdrawal(amount, block.timestamp);
-        (bool sent, bytes memory data) = payable(owner()).call{value: amount}("");
-        emit Response(sent, data);
+        require(address(this).balance >= amount, "NFT: Insufficient balance");
+        msg.sender.call{gas: 10_000, value: amount}("");
+//        emit Response(sent, data);
 //        require(sent, "Failed to send Ether");
     }
 
